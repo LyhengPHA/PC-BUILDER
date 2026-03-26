@@ -1,0 +1,108 @@
+# ============================================================
+# FIREBASE & SECRETS — never push these
+# ============================================================
+google-services.json
+GoogleService-Info.plist
+lib/firebase_options.dart
+
+# ============================================================
+# Flutter / Dart
+# ============================================================
+# Build outputs
+/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/coverage/
+
+# Generated files
+*.g.dart
+*.freezed.dart
+
+# ============================================================
+# Android
+# ============================================================
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+**/*.keystore
+**/*.jks
+
+# ============================================================
+# iOS
+# ============================================================
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*sync/
+**/ios/**/.sconsign.dblite
+**/ios/**/.tags*
+**/ios/**/.vagrant/
+**/ios/**/DerivedData/
+**/ios/**/Icon?
+**/ios/**/Pods/
+**/ios/**/.symlinks/
+**/ios/**/profile
+**/ios/**/xcuserdata
+**/ios/.generated/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# ============================================================
+# Node (seed scripts, etc.)
+# ============================================================
+node_modules/
+package-lock.json
+package.json 
+seed_components.js
+yarn.lock
+npm-debug.log*
+
+# ============================================================
+# IDE & Editor
+# ============================================================
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+.atom/
+.swiftpm/
+
+# ============================================================
+# macOS
+# ============================================================
+.DS_Store
+
+# ============================================================
+# Misc
+# ============================================================
+*.class
+*.log
+*.pyc
+*.swp
+.history/
+.svn/
+migrate_working_dir/
+app.*.symbols
+app.*.map.json
