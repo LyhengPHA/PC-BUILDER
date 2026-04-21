@@ -5,9 +5,12 @@ class OrderModel {
   final String userId;
   final List<Map<String, dynamic>> items;
   final double total;
-  final String status; // pending, building, shipped, delivered
+  final String status;
   final String description;
   final DateTime? createdAt;
+  final int? rating;        // ← added (1-5 stars)
+  final String? review;     // ← added (optional comment)
+  final DateTime? ratedAt;  // ← added
 
   OrderModel({
     required this.id,
@@ -17,6 +20,9 @@ class OrderModel {
     required this.status,
     required this.description,
     this.createdAt,
+    this.rating,
+    this.review,
+    this.ratedAt,
   });
 
   factory OrderModel.fromFirestore(DocumentSnapshot doc) {
@@ -29,6 +35,9 @@ class OrderModel {
       status: d['status'] ?? 'pending',
       description: d['description'] ?? '',
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
+      rating: d['rating'] as int?,
+      review: d['review'] as String?,
+      ratedAt: (d['ratedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -40,4 +49,7 @@ class OrderModel {
         'description': description,
         'createdAt': FieldValue.serverTimestamp(),
       };
+
+  bool get isDelivered => status == 'delivered';
+  bool get isRated => rating != null;
 }

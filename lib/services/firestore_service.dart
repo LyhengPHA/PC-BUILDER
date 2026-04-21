@@ -8,11 +8,12 @@ class FirestoreService {
   String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
   // ── Components ──────────────────────────────────────────────────────
-  Stream<QuerySnapshot> getComponents({String? type}) {
-    Query q = _db.collection('components');
-    if (type != null) q = q.where('type', isEqualTo: type);
-    return q.snapshots();
-  }
+ Stream<QuerySnapshot> getComponents({String? type, bool inStockOnly = false}) {
+  Query q = _db.collection('components');
+  if (type != null) q = q.where('type', isEqualTo: type);
+  if (inStockOnly) q = q.where('inStock', isEqualTo: true);
+  return q.snapshots();
+}
 
   Stream<QuerySnapshot> getComponentsInStock({required String type}) {
     return _db
@@ -104,10 +105,15 @@ class FirestoreService {
   Future<void> sendMessage(String text, {String? chatUserId}) async {
     final id = chatUserId ?? _uid;
 
+    // Fetch the customer's name from their profile
+    final userDoc = await _db.collection('users').doc(id).get();
+    final customerName = userDoc.data()?['name'] ?? '';
+
     await _db.collection('chats').doc(id).set({
       'lastMessage': text,
       'lastMessageTime': FieldValue.serverTimestamp(),
       'customerId': id,
+      'customerName': customerName,        // ← added
     }, SetOptions(merge: true));
 
     await _db.collection('chats').doc(id).collection('messages').add({
@@ -116,7 +122,15 @@ class FirestoreService {
       'timestamp': FieldValue.serverTimestamp(),
       'isRead': false,
     });
+    
   }
+  Future<void> rateOrder(String orderId, int rating, String review) =>
+    _db.collection('orders').doc(orderId).update({
+      'rating': rating,
+      'review': review.isEmpty ? null : review,
+      'ratedAt': FieldValue.serverTimestamp(),
+    });
+
 
   /// Admin replies to a customer
   Future<void> adminReply(String customerId, String text) async {
@@ -136,6 +150,7 @@ class FirestoreService {
       'isRead': false,
     });
   }
+  
 
   Stream<QuerySnapshot> getMessages({String? chatUserId}) {
     final id = chatUserId ?? _uid;
@@ -152,3 +167,4 @@ class FirestoreService {
       .orderBy('lastMessageTime', descending: true)
       .snapshots();
 }
+

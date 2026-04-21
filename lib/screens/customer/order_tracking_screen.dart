@@ -9,6 +9,7 @@ import '../../widgets/order_status_badge.dart';
 const _primary = Color(0xFF1A6BFF);
 const _primaryDark = Color(0xFF0D47A1);
 const _surface = Color(0xFFF5F7FF);
+const _amber = Color(0xFFFFB800);
 
 class OrderTrackingScreen extends StatelessWidget {
   const OrderTrackingScreen({super.key});
@@ -155,6 +156,213 @@ class _OrderCard extends StatefulWidget {
 class _OrderCardState extends State<_OrderCard> {
   bool _expanded = false;
 
+  // ── Rating dialog ─────────────────────────────────────────────
+  void _showRatingDialog(BuildContext context) {
+    int selectedRating = 0;
+    final reviewCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _amber.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.star_rounded,
+                          color: _amber, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('Rate Your Order',
+                        style: GoogleFonts.syne(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        )),
+                  ],
+                ),
+
+                const SizedBox(height: 6),
+                Text(
+                  'Order #${widget.order.id.substring(0, 8).toUpperCase()}',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.grey[400],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Stars
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (i) {
+                      final star = i + 1;
+                      return GestureDetector(
+                        onTap: () => setS(() => selectedRating = star),
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(
+                            star <= selectedRating
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            size: 40,
+                            color: star <= selectedRating
+                                ? _amber
+                                : Colors.grey[300],
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+
+                // Star label
+                if (selectedRating > 0) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      _ratingLabel(selectedRating),
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _amber,
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 16),
+
+                // Review text field
+                TextField(
+                  controller: reviewCtrl,
+                  maxLines: 3,
+                  style: GoogleFonts.inter(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Leave a comment (optional)...',
+                    hintStyle: GoogleFonts.inter(
+                        fontSize: 13, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: _surface,
+                    contentPadding: const EdgeInsets.all(12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: _primary, width: 1.5),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          side: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        child: Text('Cancel',
+                            style: GoogleFonts.inter(
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w600,
+                            )),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: selectedRating == 0
+                            ? null
+                            : () async {
+                                await FirestoreService().rateOrder(
+                                  widget.order.id,
+                                  selectedRating,
+                                  reviewCtrl.text.trim(),
+                                );
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(SnackBar(
+                                    content: Row(children: [
+                                      const Icon(Icons.star_rounded,
+                                          color: Colors.white, size: 16),
+                                      const SizedBox(width: 8),
+                                      Text('Thanks for your review!',
+                                          style: GoogleFonts.inter()),
+                                    ]),
+                                    backgroundColor: Colors.amber[700],
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    margin: const EdgeInsets.all(12),
+                                  ));
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _amber,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey[200],
+                          elevation: 0,
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text('Submit',
+                            style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _ratingLabel(int rating) {
+    switch (rating) {
+      case 1: return 'Poor 😞';
+      case 2: return 'Fair 😐';
+      case 3: return 'Good 🙂';
+      case 4: return 'Great 😊';
+      case 5: return 'Excellent! 🤩';
+      default: return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
@@ -219,7 +427,8 @@ class _OrderCardState extends State<_OrderCard> {
                             if (order.createdAt != null) ...[
                               const SizedBox(width: 8),
                               Text(
-                                DateFormat('MMM d, y').format(order.createdAt!),
+                                DateFormat('MMM d, y')
+                                    .format(order.createdAt!),
                                 style: GoogleFonts.inter(
                                   fontSize: 11,
                                   color: Colors.grey[400],
@@ -399,6 +608,95 @@ class _OrderCardState extends State<_OrderCard> {
                       ),
                     ),
                   ],
+
+                  // ── Rating section ──────────────────────────────
+                  if (order.isDelivered) ...[
+                    const SizedBox(height: 14),
+                    Divider(color: Colors.grey.shade100),
+                    const SizedBox(height: 14),
+
+                    if (order.isRated) ...[
+                      // Already rated — show their rating
+                      Text('Your Rating',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey[500],
+                            letterSpacing: 0.5,
+                          )),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          // Stars display
+                          Row(
+                            children: List.generate(5, (i) {
+                              return Icon(
+                                i < order.rating!
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                size: 22,
+                                color: i < order.rating!
+                                    ? _amber
+                                    : Colors.grey[300],
+                              );
+                            }),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _ratingLabelStatic(order.rating!),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _amber,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (order.review != null &&
+                          order.review!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _amber.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: _amber.withOpacity(0.2)),
+                          ),
+                          child: Text(
+                            '"${order.review}"',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ] else ...[
+                      // Not rated yet — show rate button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showRatingDialog(context),
+                          icon: const Icon(Icons.star_rounded, size: 18),
+                          label: Text('Rate this order',
+                              style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _amber,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ],
               ),
             ),
@@ -406,6 +704,17 @@ class _OrderCardState extends State<_OrderCard> {
         ],
       ),
     );
+  }
+
+  String _ratingLabelStatic(int rating) {
+    switch (rating) {
+      case 1: return 'Poor 😞';
+      case 2: return 'Fair 😐';
+      case 3: return 'Good 🙂';
+      case 4: return 'Great 😊';
+      case 5: return 'Excellent! 🤩';
+      default: return '';
+    }
   }
 }
 

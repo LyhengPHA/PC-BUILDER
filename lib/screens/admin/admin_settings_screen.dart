@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../login_screen.dart';
 import '../../services/auth_service.dart';
+
+// ── Design tokens (mirrors AdminDashboard + CustomerSettingsScreen) ──
+const _primary = Color(0xFF1A6BFF);
+const _primaryDark = Color(0xFF0D47A1);
+const _surface = Color(0xFFF5F7FF);
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
 
   @override
-  State<AdminSettingsScreen> createState() =>
-      _AdminSettingsScreenState();
+  State<AdminSettingsScreen> createState() => _AdminSettingsScreenState();
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
@@ -40,19 +45,46 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Edit Name'),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Edit Name',
+            style: GoogleFonts.syne(fontWeight: FontWeight.w700)),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(
-              labelText: 'Full Name', border: OutlineInputBorder()),
+          style: GoogleFonts.inter(fontSize: 14),
+          decoration: InputDecoration(
+            labelText: 'Full Name',
+            labelStyle:
+                GoogleFonts.inter(color: Colors.grey[600], fontSize: 13),
+            filled: true,
+            fillColor: _surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primary, width: 1.5),
+            ),
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: const Text('Save')),
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel',
+                style: GoogleFonts.inter(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Save',
+                style:
+                    GoogleFonts.inter(fontWeight: FontWeight.w600))),
         ],
       ),
     );
@@ -62,10 +94,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       await _db.collection('users').doc(uid).update({'name': result});
       setState(() => _name = result);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Name updated!'),
-              backgroundColor: Colors.green));
+      _showSnack('Name updated!', success: true);
     }
   }
 
@@ -75,56 +104,49 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Change Password'),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Change Password',
+            style: GoogleFonts.syne(fontWeight: FontWeight.w700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: currentCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                  labelText: 'Current Password',
-                  border: OutlineInputBorder()),
-            ),
+            _dialogField(currentCtrl, 'Current Password', obscure: true),
             const SizedBox(height: 12),
-            TextField(
-              controller: newCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                  labelText: 'New Password',
-                  border: OutlineInputBorder()),
-            ),
+            _dialogField(newCtrl, 'New Password', obscure: true),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel',
+                style: GoogleFonts.inter(color: Colors.grey))),
+          ElevatedButton(
             onPressed: () async {
               try {
                 final user = _auth.currentUser!;
                 final cred = EmailAuthProvider.credential(
-                    email: user.email!,
-                    password: currentCtrl.text);
+                    email: user.email!, password: currentCtrl.text);
                 await user.reauthenticateWithCredential(cred);
                 await user.updatePassword(newCtrl.text);
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Password changed!'),
-                        backgroundColor: Colors.green));
+                _showSnack('Password changed!', success: true);
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red));
+                _showSnack('Error: $e', success: false);
               }
             },
-            child: const Text('Update'),
-          ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Update',
+                style:
+                    GoogleFonts.inter(fontWeight: FontWeight.w600))),
         ],
       ),
     );
@@ -140,131 +162,410 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
+  void _showSnack(String msg, {required bool success}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Row(children: [
+        Icon(success ? Icons.check_circle : Icons.error_outline,
+            color: Colors.white, size: 18),
+        const SizedBox(width: 8),
+        Text(msg, style: GoogleFonts.inter()),
+      ]),
+      backgroundColor:
+          success ? Colors.green[600] : Colors.red[700],
+      behavior: SnackBarBehavior.floating,
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      margin: const EdgeInsets.all(12),
+    ));
+  }
 
-          // Profile header
-          Container(
-            padding: const EdgeInsets.all(24),
-            color: const Color(0xFF1565C0).withOpacity(0.05),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: const Color(0xFF1565C0),
-                  child: Text(
-                    _name.isNotEmpty
-                        ? _name[0].toUpperCase()
-                        : 'A',
-                    style: const TextStyle(
-                        fontSize: 28,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_name,
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
-                    Text(_email,
-                        style: TextStyle(
-                            fontSize: 13, color: Colors.grey[600])),
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1565C0).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text('Admin',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF1565C0),
-                              fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Profile section
-          _sectionHeader('Profile'),
-          _tile(Icons.person_outline, 'Edit Name', onTap: _editName),
-          _tile(Icons.lock_outline, 'Change Password',
-              onTap: _changePassword),
-
-          const SizedBox(height: 8),
-
-          // App section
-          _sectionHeader('App'),
-          SwitchListTile(
-            secondary: const Icon(Icons.dark_mode_outlined),
-            title: const Text('Dark Mode'),
-            subtitle: const Text('Coming soon'),
-            value: _darkMode,
-            onChanged: (v) => setState(() => _darkMode = v),
-          ),
-
-          const SizedBox(height: 8),
-
-          // About section
-          _sectionHeader('About'),
-          _tile(Icons.info_outline, 'App Version',
-              trailing: const Text('1.0.0',
-                  style: TextStyle(color: Colors.grey))),
-          _tile(Icons.store_outlined, 'PC Builder App',
-              subtitle: 'Built with Flutter & Firebase'),
-
-          const SizedBox(height: 8),
-
-          // Account section
-          _sectionHeader('Account'),
-          _tile(Icons.logout, 'Log Out',
-              color: Colors.orange, onTap: _logout),
-
-          const SizedBox(height: 32),
-        ],
+  Widget _dialogField(TextEditingController ctrl, String label,
+      {bool obscure = false}) {
+    return TextField(
+      controller: ctrl,
+      obscureText: obscure,
+      style: GoogleFonts.inter(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle:
+            GoogleFonts.inter(color: Colors.grey[600], fontSize: 13),
+        filled: true,
+        fillColor: _surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _primary, width: 1.5),
+        ),
       ),
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Text(title.toUpperCase(),
-          style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[500],
-              letterSpacing: 1.2)),
+  @override
+  Widget build(BuildContext context) {
+    final initials = _name.isNotEmpty ? _name[0].toUpperCase() : 'A';
+
+    return Scaffold(
+      backgroundColor: _surface,
+      body: Column(
+        children: [
+
+          // ── Gradient Header + Profile ─────────────────────────────
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_primaryDark, _primary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 20, 28),
+                child: Column(
+                  children: [
+                    // Back button row
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: Colors.white,
+                              size: 20),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        Text('Settings',
+                            style: GoogleFonts.syne(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            )),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Avatar + info
+                    Row(
+                      children: [
+                        const SizedBox(width: 20),
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Center(
+                            child: Text(initials,
+                                style: GoogleFonts.syne(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                )),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _name.isNotEmpty ? _name : 'Loading...',
+                              style: GoogleFonts.syne(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(_email,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                )),
+                            const SizedBox(height: 6),
+                            // Admin badge (amber to distinguish from Customer)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.25),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: Colors.amber.withOpacity(0.5),
+                                    width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                      Icons.admin_panel_settings_rounded,
+                                      size: 11,
+                                      color: Colors.amber),
+                                  const SizedBox(width: 4),
+                                  Text('Admin',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        color: Colors.amber,
+                                        fontWeight: FontWeight.w600,
+                                      )),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Settings list ─────────────────────────────────────────
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+              children: [
+
+                _SectionLabel('Profile'),
+                const SizedBox(height: 8),
+                _SettingsCard(children: [
+                  _SettingsTile(
+                    icon: Icons.person_rounded,
+                    label: 'Edit Name',
+                    onTap: _editName,
+                  ),
+                  _CardDivider(),
+                  _SettingsTile(
+                    icon: Icons.lock_rounded,
+                    label: 'Change Password',
+                    onTap: _changePassword,
+                  ),
+                ]),
+
+                const SizedBox(height: 20),
+
+                _SectionLabel('App'),
+                const SizedBox(height: 8),
+                _SettingsCard(children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDDE8FF),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.dark_mode_rounded,
+                              color: _primary, size: 18),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Dark Mode',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  )),
+                              Text('Coming soon',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: Colors.grey[400],
+                                  )),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _darkMode,
+                          onChanged: (v) =>
+                              setState(() => _darkMode = v),
+                          activeColor: _primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+
+                const SizedBox(height: 20),
+
+                _SectionLabel('About'),
+                const SizedBox(height: 8),
+                _SettingsCard(children: [
+                  _SettingsTile(
+                    icon: Icons.info_rounded,
+                    label: 'App Version',
+                    trailing: Text('1.0.0',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.grey[400],
+                        )),
+                  ),
+                  _CardDivider(),
+                  _SettingsTile(
+                    icon: Icons.store_rounded,
+                    label: 'PC Builder App',
+                    subtitle: 'Built with Flutter & Firebase',
+                  ),
+                ]),
+
+                const SizedBox(height: 20),
+
+                _SectionLabel('Account'),
+                const SizedBox(height: 8),
+                _SettingsCard(children: [
+                  _SettingsTile(
+                    icon: Icons.logout_rounded,
+                    label: 'Log Out',
+                    iconColor: Colors.orange[600]!,
+                    labelColor: Colors.orange[700]!,
+                    onTap: _logout,
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
 
-  Widget _tile(IconData icon, String title,
-      {String? subtitle,
-      VoidCallback? onTap,
-      Color? color,
-      Widget? trailing}) {
-    return ListTile(
-      leading: Icon(icon, color: color ?? const Color(0xFF1565C0)),
-      title: Text(title,
-          style: TextStyle(color: color, fontWeight: FontWeight.w500)),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: trailing ??
-          (onTap != null ? const Icon(Icons.chevron_right) : null),
+// ════════════════════════════════════════════════════════════════
+// Reusable components (mirrors CustomerSettingsScreen helpers)
+// ════════════════════════════════════════════════════════════════
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: Colors.grey[400],
+        letterSpacing: 1.2,
+      ),
+    );
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final VoidCallback? onTap;
+  final Color iconColor;
+  final Color labelColor;
+  final Widget? trailing;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    this.onTap,
+    this.iconColor = _primary,
+    this.labelColor = Colors.black87,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: labelColor,
+                      )),
+                  if (subtitle != null)
+                    Text(subtitle!,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: Colors.grey[400],
+                        )),
+                ],
+              ),
+            ),
+            trailing ??
+                (onTap != null
+                    ? Icon(Icons.chevron_right_rounded,
+                        color: Colors.grey[300], size: 20)
+                    : const SizedBox.shrink()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      indent: 66,
+      endIndent: 16,
+      color: Colors.grey.shade100,
     );
   }
 }
