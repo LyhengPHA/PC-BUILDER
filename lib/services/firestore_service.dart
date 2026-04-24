@@ -132,6 +132,7 @@ class FirestoreService {
     });
 
 
+
   /// Admin replies to a customer
   Future<void> adminReply(String customerId, String text) async {
     await _db.collection('chats').doc(customerId).set({
